@@ -1,4 +1,5 @@
+<img src="assets/juno_logo_1.svg" alt="drawing" width="300em"/>
+
 # Juno
-![The Juno Logo](assets/juno_logo_1.svg)
-The no_std Rust Embedded Framework
+The `no_std` Rust Embedded Framework
 
