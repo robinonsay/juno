@@ -3,4 +3,9 @@ name = "juno"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+default = ["posix"]
+posix = []
+
 [dependencies]
+osafe = { path = "../osafe" }
