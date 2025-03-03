@@ -1,0 +1,3 @@
+[submodule "osafe"]
+	path = osafe
+	url = git@github.com:robinonsay/osafe.git
