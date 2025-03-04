@@ -1,7 +1,8 @@
 use core::time::Duration;
 
-use alloc::{sync::Arc, vec::Vec};
 use osafe::{error::Error, ipc::Communicate};
+
+use crate::math::is_prime;
 
 use super::{Address, Msg, Topic};
 
@@ -17,11 +18,12 @@ struct Subscriber<T: Communicate>
     pub channel: T,
 }
 
-pub struct Broker<T: Communicate>
+pub struct Broker<T: Communicate, const C: usize>
 {
     in_pipe: T,
     out_pipe: T,
-    subscribers: Vec<Option<Subscriber<T>>>
+    subscribers: [Option<Subscriber<T>>;C],
+    length: usize
 }
 
 impl<T: Communicate> Publisher<T>
@@ -71,7 +73,7 @@ impl <T: Communicate> Subscriber<T>
     }
 }
 
-impl<T: Communicate> Broker<T>
+impl<T: Communicate, const C: usize> Broker<T, C>
 {
     pub fn new(in_pipe: T, out_pipe: T) -> Self
     {
@@ -79,7 +81,94 @@ impl<T: Communicate> Broker<T>
         {
             in_pipe: in_pipe,
             out_pipe: out_pipe,
-            subscribers: Vec::new()
+            subscribers: [const {None}; C],
+            length: 0
         }
+    }
+
+    /// Gets the index for a topic and accounts for collisions
+    fn get_index(&self, topic: Topic) -> Option<usize>
+    {
+        // Return none if there is no space available
+        if self.length >= C
+        {
+            return None;
+        }
+        // Get the index with the first hash function
+        let mut index = (topic % C as Topic) as usize;
+        // Check if the index is available
+        if self.subscribers[index].is_none()
+        {
+            // Index is available, return
+            return Some(index);
+        }
+        // Get the R value for the new hash functions:
+        // h2(key) = R - (key % R)
+        let mut r_mod: usize = 1;
+        // Find the next smallest prime numbers
+        for i in (1..=C).rev()
+        {
+            if is_prime(i)
+            {
+                r_mod = i;
+                break;
+            }
+        }
+        // Calaculate the step size
+        let step = r_mod - (topic as usize % r_mod/2);
+        // Find the next available spot in the table
+        for _ in 0..C
+        {
+            // Increment the index by step
+            index += step;
+            // Check if the spot is available
+            if self.subscribers[index].is_none()
+            {
+                return Some(index);
+            }
+
+        }
+        return None;
+    }
+
+}
+
+
+#[cfg(test)]
+mod tests
+{
+    use super::*;
+
+    struct TestComm;
+
+    impl Communicate for TestComm
+    {
+        fn send<T: Send>(&self, _: T) -> Result<(), Error> {
+            return Ok(())
+        }
+    
+        fn try_send<T: Send>(&self, _: T, _:i32) -> Result<(), Error> {
+            return Ok(())
+        }
+    
+        fn recv<T: Send>(&self) -> Result<T, Error> {
+            todo!()
+        }
+    
+        fn try_recv<T: Send>(&self, _: i32) -> Result<Option<T>, Error> {
+            todo!()
+        }
+    }
+
+    #[test]
+    fn test_get_index()
+    {
+        let mut broker =
+        Broker::<TestComm, 10>::new(TestComm{}, TestComm{});
+        let test_topic: Topic = 100;
+        let index_1 = broker.get_index(test_topic).unwrap();
+        broker.subscribers[index_1] = Some(Subscriber::new(TestComm{}, test_topic, 100));
+        let index_2 = broker.get_index(test_topic * 2).unwrap();
+        assert_ne!(index_1, index_2)
     }
 }
