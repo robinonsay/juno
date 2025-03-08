@@ -1,7 +1,8 @@
+use core::hash::Hash;
 use core::{fmt::Error, str::from_utf8};
 use core::fmt::{Display, Write};
 
-use crate::hash::{djb2_hash, Hash};
+#[derive(Debug)]
 pub struct SString<const C: usize>
 {
     buffer: [u8;C],
@@ -48,13 +49,8 @@ impl<const C: usize> Write for SString<C> {
 
 impl<const C:usize> Hash for SString<C>
 {
-    fn hash(&self) -> usize {
-        let current_len = match self.buffer.iter().position(|&c| c == 0)
-        {
-            Some(len) => len,
-            None => self.buffer.len()
-        };
-        djb2_hash(&self.buffer[..current_len])
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.buffer.hash(state);
     }
 }
 
@@ -77,17 +73,25 @@ macro_rules! sformat {
 #[cfg(test)]
 mod tests
 {
+    use core::hash::Hasher;
+
+    use crate::hash::DjB2Hasher;
+
     use super::*;
 
     #[test]
     fn test_hash()
     {
         let test = sformat!(32, "Hello World!");
-        let hash = test.hash();
+        let mut hasher = DjB2Hasher::new();
+        test.hash(&mut hasher);
+        let hash = hasher.finish();
         println!("This is the string: {}", test);
         println!("This is the hash: {}", hash);
         let test = sformat!(32, "Hello World.");
-        let hash = test.hash();
+        let mut hasher = DjB2Hasher::new();
+        test.hash(&mut hasher);
+        let hash = hasher.finish();
         println!("This is the string: {}", test);
         println!("This is the hash: {}", hash);
     }

@@ -2,6 +2,7 @@
 
 include!(concat!(env!("OUT_DIR"), "/constants.rs"));
 extern crate alloc;
+pub mod error;
 pub mod msg;
 pub mod math;
 pub mod string;
