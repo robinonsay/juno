@@ -1,7 +1,7 @@
 use core::{fmt::Error, str::from_utf8};
 use core::fmt::{Display, Write};
 
-use crate::hash::{fnv1a_hash, Hash};
+use crate::hash::{djb2_hash, Hash};
 pub struct SString<const C: usize>
 {
     buffer: [u8;C],
@@ -54,7 +54,7 @@ impl<const C:usize> Hash for SString<C>
             Some(len) => len,
             None => self.buffer.len()
         };
-        fnv1a_hash(&self.buffer[..current_len])
+        djb2_hash(&self.buffer[..current_len])
     }
 }
 
@@ -82,11 +82,11 @@ mod tests
     #[test]
     fn test_hash()
     {
-        let mut test = sformat!(32, "Hello World!");
+        let test = sformat!(32, "Hello World!");
         let hash = test.hash();
         println!("This is the string: {}", test);
         println!("This is the hash: {}", hash);
-        test.write_str("More Hello!").unwrap();
+        let test = sformat!(32, "Hello World.");
         let hash = test.hash();
         println!("This is the string: {}", test);
         println!("This is the hash: {}", hash);
