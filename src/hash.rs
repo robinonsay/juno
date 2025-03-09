@@ -1,7 +1,5 @@
 use core::hash::Hasher;
 
-
-
 pub struct DjB2Hasher
 {
     hash: usize

@@ -6,7 +6,7 @@ pub struct Map<const C: usize, K: Hash + PartialEq, V>
 {
     keys: [Option<K>; C],
     values: [Option<V>; C],
-
+    size: usize
 }
 
 impl<const C: usize, K: Hash + PartialEq, V> Map<C,K,V>
@@ -17,6 +17,7 @@ impl<const C: usize, K: Hash + PartialEq, V> Map<C,K,V>
         {
             keys: [const { None }; C],
             values: [const { None }; C],
+            size: 0
         }
     }
 
@@ -78,68 +79,65 @@ impl<const C: usize, K: Hash + PartialEq, V> Map<C,K,V>
         let index = self.find_index(&key)?;
         self.keys[index] = Some(key);
         self.values[index] = Some(value);
+        self.size += 1;
         return Ok(());
     }
     // pub fn get_value
 }
 
+
 #[cfg(test)]
-mod tests
-{
+mod tests {
     use super::*;
-    #[cfg(test)]
-    mod tests {
-        use super::*;
 
-        #[test]
-        fn test_set_get() {
-            const C: usize = 4;
-            let mut map = Map::<C, i32, i32>::new();
-            // get on an empty map returns None.
-            assert_eq!(map.get(&10).unwrap(), None);
+    #[test]
+    fn test_set_get() {
+        const C: usize = 4;
+        let mut map = Map::<C, i32, i32>::new();
+        // get on an empty map returns None.
+        assert_eq!(map.get(&10).unwrap(), None);
 
-            // Inserting a key-value pair.
-            map.set(10, 100).unwrap();
-            // Retrieving returns the correct value.
-            assert_eq!(map.get(&10).unwrap(), Some(&100));
+        // Inserting a key-value pair.
+        map.set(10, 100).unwrap();
+        // Retrieving returns the correct value.
+        assert_eq!(map.get(&10).unwrap(), Some(&100));
+    }
+
+    #[test]
+    fn test_get_mut_update() {
+        const C: usize = 4;
+        let mut map = Map::<C, i32, i32>::new();
+        map.set(20, 200).unwrap();
+        // Use get_mut to modify the value.
+        if let Some(value) = map.get_mut(&20).unwrap() {
+            *value = 250;
         }
+        assert_eq!(map.get(&20).unwrap(), Some(&250));
+    }
 
-        #[test]
-        fn test_get_mut_update() {
-            const C: usize = 4;
-            let mut map = Map::<C, i32, i32>::new();
-            map.set(20, 200).unwrap();
-            // Use get_mut to modify the value.
-            if let Some(value) = map.get_mut(&20).unwrap() {
-                *value = 250;
-            }
-            assert_eq!(map.get(&20).unwrap(), Some(&250));
-        }
+    #[test]
+    fn test_non_existent_key() {
+        const C: usize = 4;
+        let mut map = Map::<C, i32, i32>::new();
+        map.set(30, 300).unwrap();
+        // Requesting an unknown key returns Ok(None)
+        assert_eq!(map.get(&40).unwrap(), None);
+    }
 
-        #[test]
-        fn test_non_existent_key() {
-            const C: usize = 4;
-            let mut map = Map::<C, i32, i32>::new();
-            map.set(30, 300).unwrap();
-            // Requesting an unknown key returns Ok(None)
-            assert_eq!(map.get(&40).unwrap(), None);
-        }
-
-        #[test]
-        fn test_map_full() {
-            // Use a small capacity map to force a full table.
-            const C: usize = 2;
-            let mut map = Map::<C, i32, i32>::new();
-            // Fill the map.
-            map.set(1, 10).unwrap();
-            map.set(2, 20).unwrap();
-            // Inserting a new key should result in an error.
-            let err = map.set(3, 30).unwrap_err();
-            match err {
-                Error::CollectionsError(_) => {
-                    
-                },
-            }
+    #[test]
+    fn test_map_full() {
+        // Use a small capacity map to force a full table.
+        const C: usize = 2;
+        let mut map = Map::<C, i32, i32>::new();
+        // Fill the map.
+        map.set(1, 10).unwrap();
+        map.set(2, 20).unwrap();
+        // Inserting a new key should result in an error.
+        let err = map.set(3, 30).unwrap_err();
+        match err {
+            Error::CollectionsError(_) => {
+                
+            },
         }
     }
 }
